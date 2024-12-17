@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./supabase.js"></script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HALLOWEEN</title>
+
+    <style type="text/css">
+              body {
+                  background: rgb(255, 132, 0);
+                  text-align: center;
+              }
+
+              h1 {
+                  font-family: 'EF_jejudoldam';
+                  font-size: 110px;
+                  color: black;
+                  letter-spacing: -5px;
+                  margin-top: 55px;
+              }
+
+              h2 {
+                  font-family: 'Paperlogy-6SemiBold';
+                  font-size: 24px;
+                  line-height: 150%;
+                  color: white;
+                  text-align: center;
+                  transform: translateY(20px);
+                  opacity: 0;
+                  transition: opacity 1s ease, transform 1s ease;
+                  margin-top: -25px;
+                  margin-bottom: 40px;
+
+              }
+
+              h3, .halloween-img, .start-button {
+                  font-family: 'Paperlogy-5Medium';
+                  line-height: 150%;
+                  transform: translateY(20px);
+                  opacity: 0;
+                  transition: opacity 1s ease, transform 1s ease;
+              }
+
+              .visible {
+                  opacity: 1;
+                  transform: translateY(0px);
+              }
+
+
+
+              @font-face {
+          font-family: 'EF_jejudoldam';
+          src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2210-EF@1.0/EF_jejudoldam.woff2') format('woff2');
+          font-weight: normal;
+          font-style: normal;
+      }
+
+              @font-face {
+          font-family: 'Paperlogy-6SemiBold';
+          src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-6SemiBold.woff2') format('woff2');
+          font-weight: 600;
+          font-style: normal;
+          }
+
+              @font-face {
+          font-family: 'Paperlogy-5Medium';
+          src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-5Medium.woff2') format('woff2');
+          font-weight: 600;
+          font-style: normal;
+          }
+      }
+
+              @keyframes reveal {
+                  0% {
+                      width: 0;
+                  }
+                  100% {
+                      width: 100%;
+                  }
+              }
+
+              .start-button {
+                  background-color: black;
+                  color: white;
+                  font-size: 20px;
+                  padding: 15px 30px;
+                  border: none;
+                  border-radius: 5px;
+                  cursor: pointer;
+                  margin-top: 30px;
+                  transition: background-color 0.3s ease;
+              }
+
+              .start-button:hover {
+                  background-color: #444;
+              }
+    </style>
+  </head>
+  <body>
+    <h1>WELCOME TO HALLOWEEN</h1>
+    <section>
+        <h2>귀신들이 주인공인 오늘은 할로윈!<br>
+        하지만 사탕을 너무 먹고싶다고?</h2>
+        <h3>귀신들에게 들키지 않고 제한시간 30초 안에 사탕을 10개 이상 모으면 성공!<br>
+            귀신들은 인간을 정말 싫어하니까 부딛히지 않도록 조심해<br>
+        쉿! 만일 너가 인간인 걸 알게 된다면 ...😮</h3>
+    </section>
+
+    <section>
+      <img src="main.gif" alt="Halloween GIF" class="halloween-img" />
+    </section>
+
+    <section>
+      <button class="start-button" onclick="askName()">게임 시작</button>
+    </section>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const h2 = document.querySelector("h2");
+        const h3 = document.querySelector("h3");
+        const img = document.querySelector(".halloween-img");
+        const button = document.querySelector(".start-button");
+
+        // h2 애니메이션
+        setTimeout(() => {
+          h2.classList.add("visible");
+        }, 500); // h2 등장
+
+        // h2 이후 h3와 이미지가 동시에 등장
+        setTimeout(() => {
+          h3.classList.add("visible");
+          img.classList.add("visible");
+        }, 2000); // h2 등장 후
+
+        // h3와 이미지 이후 버튼 등장
+        setTimeout(() => {
+          button.classList.add("visible");
+        }, 5000); // h3와 이미지 등장 후
+      });
+
+      async function askName() {
+        var name = prompt("이름을 입력해주세요.");
+        if (name != null && name != "") {
+          alert("" + name + "! 행운을 빌게!");
+          localStorage.setItem("name", name);
+          try{
+            const {data, error} = await db.from("score").select().eq('name', name)
+            if(!data) {
+                return alert("이미 있는 이름입니다.")
+            } else {
+                window.location.href = "index_2.html";
+            }
+          } catch(e){
+            return console.log(e);
+         }
+        } else {
+          alert("이름을 입력하지 않으셨습니다.");
+        }
+      }
+    </script>
+  </body>
+</html>

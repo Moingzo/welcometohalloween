@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+   <script src="./supabase.js"></script>
+   <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+   <title>HALLOWEEN</title>
+   <style type="text/css">
+    html{cursor:none;}
+      body {
+          margin: -20px;
+          overflow: hidden;
+          position: relative;
+          background-image: url(background.jpg);
+          background-size: cover;
+      }
+
+      #cursor {
+          position: absolute;
+          pointer-events: none;
+          transform: translate(-50%, -50%);
+          width: 200px;
+          height: 200px;
+          z-index: 9999;
+      }
+
+      #timer {
+          position: fixed;
+          top: 10px;
+          left: 10px;
+          font-family: 'Paperlogy-8ExtraBold';
+          font-size: 30px;
+          font-weight: bold;
+          color: rgb(255, 132, 0);
+          z-index: 1000;
+      }
+
+      .floating-image {
+          position: absolute;
+          width: 200px;
+          height: 200px;
+          z-index: 10;
+      }
+
+      #videoPlayer {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          display: none;
+          object-fit: cover;
+      }
+
+      .candy {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            cursor: pointer;
+            z-index: 0;
+        }
+
+         #counter {
+            position: fixed;
+            top: 50px;
+            left: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            font-family: 'Paperlogy-8ExtraBold';
+        }
+
+        @font-face {
+    font-family: 'Paperlogy-8ExtraBold';
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-8ExtraBold.woff2') format('woff2');
+    font-weight: 800;
+    font-style: normal;
+    }
+
+
+   </style>
+     <style>
+        /* 모달의 배경 */
+        .modal-overlay {
+          position: fixed;
+          z-index:20;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.5);
+          display: none; /* 기본적으로 숨김 */
+          justify-content: center;
+          align-items: center;
+        }
+    
+        /* 모달 창 */
+        .modal {
+          background: white;
+          padding: 20px;
+          border-radius: 8px;
+          width: 300px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          display: flex; /* 중앙 정렬을 위한 flex 사용 */
+          flex-direction: column;
+          cursor: move;
+        }
+    
+        /* 테이블 스타일 */
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 10px;
+          text-align: center;
+        }
+        table, th, td {
+          border: 1px solid #ddd;
+        }
+        th, td {
+          padding: 8px;
+          text-align: left;
+        }
+        th {
+          background-color: #f4f4f4;
+        }
+
+        .table-container {
+        max-height: 300px; /* 최대 높이 설정 */
+        overflow-y: auto;  /* 세로 스크롤 활성화 */
+        margin-top: 10px;
+        }
+
+        .back-button {
+        display: block;
+        margin-top: 20px;
+        padding: 10px 20px;
+        background-color: #ff6600;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        text-align: center;
+        }
+
+        .back-button:hover {
+        background-color: #cc5200;
+        }
+
+      </style>
+</head>
+
+<body>
+   <div id="cursor">
+        <img src="main.gif" alt="cursor" />
+    </div>
+
+    <audio id="backgroundMusic" autoplay loop>
+    <source src="video_ready/ghost_song.mp3" type="audio/mp3">
+    Your browser does not support the audio element.
+</audio>
+    <div id="timer">30</div>
+
+    <video id="videoPlayer" autoplay>
+        <source src="video_ready/ling.mp4" type="video/mp4">
+
+    </video>
+
+    <div id="counter">🍬: 0</div>
+
+    <div id="modalOverlay" class="modal-overlay">
+        <div class="modal">
+        <h2>결과🍬🍬🍬</h2>
+        <div class="table-container">
+        <table id="userTable">
+        <thead>
+            <tr>
+            <th>이름</th>
+            <th>스코어</th>
+            </tr>
+        </thead>
+        <tbody>
+            
+        </tbody>
+        </table>
+        <button id="backButton" class="back-button">다시하기</button> 
+        </div>
+    </div>
+
+   <script type="text/javascript">
+    document.body.addEventListener('click', function() {
+            const audio = document.getElementById('backgroundMusic');
+            
+            audio.volume = 0.5;
+            if (audio.paused) {
+                audio.play();
+            }
+        });
+
+    const name = localStorage.getItem("name");
+      if (!name) {
+        window.location.href = "index.html";
+      }
+
+    async function updateUserScore() {
+        const name = localStorage.getItem("name");
+        if (!name) {
+            console.error("유저이름 왜없을까잉");
+            return;
+        }
+        localStorage.removeItem("name");
+        await db
+            .from("score")
+            .insert([{ score: clickedCount, name }])
+    }
+        // 모달 관련 요소 가져오기
+        // 사용자 데이터를 테이블에 렌더링
+    async function renderUserTable() {
+        const modalOverlay = document.getElementById('modalOverlay');
+        const userTableBody = document.getElementById('userTable').querySelector('tbody');
+        // Supabase에서 'users' 테이블 데이터 가져오기
+                const { data, error } = await db
+            .from("score") // 테이블 이름
+            .select("*")
+            .order('score', { ascending: false })
+
+        if (error) {
+            console.error("데이터를 가져오는 중 에러 발생:", error);
+            return [];
+        }
+
+        
+        userTableBody.innerHTML = ""; // 기존 데이터를 초기화
+            data.forEach(user => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                <td>${user.name}</td>
+                <td>${user.score}</td>
+                `;
+                userTableBody.appendChild(row);
+            });
+        modalOverlay.style.display = 'flex';
+
+    }
+
+    // 모달 드래그 기능 추가
+let modal = document.querySelector('.modal');
+let isDragging = false;
+let offsetX, offsetY;
+
+modal.addEventListener('mousedown', function(e) {
+    isDragging = true;
+    offsetX = e.clientX - modal.getBoundingClientRect().left;
+    offsetY = e.clientY - modal.getBoundingClientRect().top;
+    modal.style.cursor = 'grabbing';
+});
+
+document.addEventListener('mousemove', function(e) {
+    if (isDragging) {
+        let left = e.clientX - offsetX;
+        let top = e.clientY - offsetY;
+        modal.style.left = left + 'px';
+        modal.style.top = top + 'px';
+    }
+});
+
+document.addEventListener('mouseup', function() {
+    isDragging = false;
+    modal.style.cursor = 'move';
+});
+
+
+
+    // 커서 이동 기능
+    window.onmousemove = function(e) {
+        const cursor = document.getElementById('cursor');
+        cursor.style.left = e.clientX + "px";
+        cursor.style.top = e.clientY + "px";
+    };
+
+    // 타이머 기능
+    let timeLeft = 30;
+    const timerElement = document.getElementById('timer');
+
+    function updateTimer() {
+        timerElement.textContent = timeLeft;
+        if (timeLeft > 0) {
+            timeLeft--;
+        } else {
+            clearInterval(timerInterval);
+            (async()=>{
+                await updateUserScore()
+                await renderUserTable()
+            })()
+        }
+    }
+
+    const timerInterval = setInterval(updateTimer, 1000);
+
+    const images = ['twins.png', 'scream.png', 'ling.png', 'girl.png', 'johnny.png', 'insidius.png', 'nun.png', 'samgak.png', 'saw.png', 'annabelle.png', 'mom.png', 'it.png', 'texas.png', 'terrifier.png'];
+
+    // 각 이미지에 대해 랜덤 이동 및 반사 효과 적용
+    const floatingImages = images.map(imageUrl => {
+        const imgElement = document.createElement('div');
+        imgElement.classList.add('floating-image');
+        imgElement.style.backgroundImage = `url(${imageUrl})`;
+        document.body.appendChild(imgElement);
+
+        // 랜덤 초기 위치 및 속도
+        let posX = Math.random() * (window.innerWidth - 200);
+        let posY = Math.random() * (window.innerHeight - 200);
+        let velocityX = 1 + Math.random() * 8;
+        let velocityY = 1 + Math.random() * 6;
+
+        return { element: imgElement, posX, posY, velocityX, velocityY, imageUrl };
+    });
+
+    // 이미지 위치 갱신 및 충돌 처리
+    function moveImages() {
+    floatingImages.forEach((image, index) => {
+        image.posX += image.velocityX;
+        image.posY += image.velocityY;
+
+        // 화면을 벗어나지 않도록 처리
+        if (image.posX <= 0 || image.posX >= window.innerWidth - 200) {
+            image.velocityX = -image.velocityX;
+        }
+        if (image.posY <= 0 || image.posY >= window.innerHeight - 200) {
+            image.velocityY = -image.velocityY;
+        }
+
+        // 위치 갱신
+        image.element.style.left = image.posX + 'px';
+        image.element.style.top = image.posY + 'px';
+
+        // 커서와 이미지 간 충돌 감지
+        const cursorX = parseInt(document.getElementById('cursor').style.left);
+        const cursorY = parseInt(document.getElementById('cursor').style.top);
+
+        // 마우스 커서와 이미지가 겹치는지 확인
+        if (
+            cursorX >= image.posX && cursorX <= image.posX + 100 &&
+            cursorY >= image.posY && cursorY <= image.posY + 200
+        ) {
+               
+                if (image.imageUrl === 'ling.png') {
+                     const videoPlayer = document.getElementById('videoPlayer');
+
+                // 비디오가 이미 재생 중이면 재시작하지 않도록 방지
+                    if (videoPlayer.paused) {
+                videoPlayer.src = 'video_ready/ling.mp4';
+                videoPlayer.style.display = 'block'; // 비디오 보이도록 설정
+                videoPlayer.play();
+                }
+
+                // 비디오 종료 후 자동으로 숨기기
+                videoPlayer.addEventListener('ended', function() {
+                videoPlayer.style.display = 'none';
+                });
+            }
+
+                if (image.imageUrl === 'girl.png') {
+                    const videoPlayer = document.getElementById('videoPlayer');
+                    
+                if (videoPlayer.paused) {
+                videoPlayer.src = 'video_ready/girlhighschool.mp4';
+                videoPlayer.style.display = 'block';
+                videoPlayer.play();
+                audio.volume = 1.3;
+                }
+
+                videoPlayer.addEventListener('ended', function() {
+                videoPlayer.style.display = 'none';
+                });
+            }
+
+                if (image.imageUrl === 'johnny.png') {
+                    const videoPlayer = document.getElementById('videoPlayer');
+                
+                if (videoPlayer.paused) {
+                videoPlayer.src = 'video_ready/shining.mp4';
+                videoPlayer.style.display = 'block';
+                videoPlayer.play();
+                }
+
+                videoPlayer.addEventListener('ended', function() {
+                videoPlayer.style.display = 'none';
+                });
+            }
+
+
+                if (image.imageUrl === 'saw.png') {
+                    const videoPlayer = document.getElementById('videoPlayer');
+                
+                if (videoPlayer.paused) {
+                videoPlayer.src = 'video_ready/saw.mp4';
+                videoPlayer.style.display = 'block';
+                videoPlayer.play();
+                audio.volume = 1.3;
+                }
+
+                videoPlayer.addEventListener('ended', function() {
+                videoPlayer.style.display = 'none';
+                });
+            }
+
+
+                if (image.imageUrl === 'insidius.png') {
+                    const videoPlayer = document.getElementById('videoPlayer');
+                    
+                if (videoPlayer.paused) {
+                videoPlayer.src = 'video_ready/insidius.mp4';
+                videoPlayer.style.display = 'block';
+                videoPlayer.play();
+                }
+
+                videoPlayer.addEventListener('ended', function() {
+                videoPlayer.style.display = 'none';
+                });
+            }
+
+            
+                if (image.imageUrl === 'samgak.png') {
+                    const videoPlayer = document.getElementById('videoPlayer');
+               
+               if (videoPlayer.paused) {
+                videoPlayer.src = 'video_ready/pyramidhead.mp4';
+                videoPlayer.style.display = 'block';
+                videoPlayer.play();
+                }
+
+                videoPlayer.addEventListener('ended', function() {
+                videoPlayer.style.display = 'none';
+                });
+            }
+
+
+                if (image.imageUrl === 'nun.png') {
+                    const videoPlayer = document.getElementById('videoPlayer');
+                
+                if (videoPlayer.paused) {
+                videoPlayer.src = 'video_ready/nun2.mp4';
+                videoPlayer.style.display = 'block';
+                videoPlayer.play();
+                audio.volume = 1.3;
+                }
+
+                videoPlayer.addEventListener('ended', function() {
+                videoPlayer.style.display = 'none';
+                });
+            }
+
+                if (image.imageUrl === 'scream.png') {
+                    const videoPlayer = document.getElementById('videoPlayer');
+                    
+                if (videoPlayer.paused) {
+                videoPlayer.src = 'video_ready/scream.mp4';
+                videoPlayer.style.display = 'block';
+                videoPlayer.play();
+                }
+
+                videoPlayer.addEventListener('ended', function() {
+                videoPlayer.style.display = 'none';
+                });
+            }
+
+                if (image.imageUrl === 'twins.png') {
+                    const videoPlayer = document.getElementById('videoPlayer');
+                
+                if (videoPlayer.paused) {
+                videoPlayer.src = 'video_ready/shining_twins.mp4';
+                videoPlayer.style.display = 'block';
+                videoPlayer.play();
+                audio.volume = 1.3;
+                }
+
+                videoPlayer.addEventListener('ended', function() {
+                videoPlayer.style.display = 'none';
+                });
+            }
+
+            if (image.imageUrl === 'texas.png') {
+                    const videoPlayer = document.getElementById('videoPlayer');
+                
+                if (videoPlayer.paused) {
+                videoPlayer.src = 'video_ready/texas.mp4';
+                videoPlayer.style.display = 'block';
+                videoPlayer.play();
+                }
+
+                videoPlayer.addEventListener('ended', function() {
+                videoPlayer.style.display = 'none';
+                });
+            }
+            
+            if (image.imageUrl === 'mom.png') {
+                    const videoPlayer = document.getElementById('videoPlayer');
+                
+                if (videoPlayer.paused) {
+                videoPlayer.src = 'video_ready/mom.mp4';
+                videoPlayer.style.display = 'block';
+                videoPlayer.play();
+                }
+
+                videoPlayer.addEventListener('ended', function() {
+                videoPlayer.style.display = 'none';
+                });
+            }
+
+            if (image.imageUrl === 'it.png') {
+                    const videoPlayer = document.getElementById('videoPlayer');
+                
+                if (videoPlayer.paused) {
+                videoPlayer.src = 'video_ready/it.mp4';
+                videoPlayer.style.display = 'block';
+                videoPlayer.play();
+                }
+
+                videoPlayer.addEventListener('ended', function() {
+                videoPlayer.style.display = 'none';
+                });
+            }
+
+            if (image.imageUrl === 'annabelle.png') {
+                    const videoPlayer = document.getElementById('videoPlayer');
+                
+                if (videoPlayer.paused) {
+                videoPlayer.src = 'video_ready/annabelle.mp4';
+                videoPlayer.style.display = 'block';
+                videoPlayer.play();
+                }
+
+                videoPlayer.addEventListener('ended', function() {
+                videoPlayer.style.display = 'none';
+                });
+            }
+
+            if (image.imageUrl === 'terrifier.png') {
+                    const videoPlayer = document.getElementById('videoPlayer');
+                
+                if (videoPlayer.paused) {
+                videoPlayer.src = 'video_ready/terrifier.mp4';
+                videoPlayer.style.display = 'block';
+                videoPlayer.play();
+                }
+
+                videoPlayer.addEventListener('ended', function() {
+                videoPlayer.style.display = 'none';
+                });
+            }
+
+            
+            }
+        });
+    }
+
+ const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+
+        const candyImages = ['candy1.png', 'candy2.png', 'candy3.png', 'candy4.png'];
+
+        var clickedCount = 0;
+
+        function updateCounter() {
+            const counterElement = document.getElementById('counter');
+            counterElement.textContent = `🍬 : ${clickedCount}`;
+        }
+
+        // 무작위로 이미지 배치하는 함수
+        function createRandomCandy() {
+            const candy = document.createElement('div');
+            candy.classList.add('candy');
+
+            // 무작위 이미지 선택
+            const randomImage = candyImages[Math.floor(Math.random() * candyImages.length)];
+            candy.style.backgroundImage = `url('${randomImage}')`;
+            candy.style.backgroundSize = 'cover';
+
+            // 무작위 위치 설정
+            const posX = Math.random() * (screenWidth - 100); // 화면 너비에서 이미지 크기를 빼서 위치 조정
+            const posY = Math.random() * (screenHeight - 100); // 화면 높이에서 이미지 크기를 빼서 위치 조정
+
+            candy.style.left = `${posX}px`;
+            candy.style.top = `${posY}px`;
+
+            // 클릭 이벤트 추가
+            candy.addEventListener('click', function() {
+                candy.remove();
+                clickedCount++;
+                updateCounter();
+            });
+
+            // 이미지 추가
+            document.body.appendChild(candy);
+        }
+
+        // 이미지를 여러 개 추가 (예: 20개)
+        for (let i = 0; i < 80; i++) {
+            createRandomCandy();
+        }
+    // 16ms 마다 이미지 위치 갱신
+    setInterval(moveImages, 16);
+
+    document.getElementById('backButton').addEventListener('click', function() {
+    window.location.href = 'index.html';  // index.html로 이동
+});
+
+</script>
+</body>
+</html>
